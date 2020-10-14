@@ -7,44 +7,53 @@ const { googleMapAPI } = process.env;
 import formattedDistrict from "../districts.json";
 import { GeolibInputCoordinates } from "geolib/es/types";
 
+interface Geocode {
+  status: string;
+  search: any;
+  location: {
+    address: string;
+    city: string;
+    lat: number;
+    lng: number;
+    postcode: string;
+    serviceArea: string;
+  };
+}
+
 const isPointInDistrict = async (
   coord: GeolibInputCoordinates,
   polygon: any
 ) => {
-  console.log(
-    isPointInPolygon(
-      [51.5125, 7.485, 0],
-      [
-        [51.5, 7.4, 0],
-        [51.555, 7.4, 0],
-        [51.555, 7.625, 0],
-        [51.5125, 7.625, 0],
-      ]
-    )
-  );
   return isPointInPolygon(coord, polygon);
 };
 
 const getCoordinates = async (address: string, res: Response) => {
   let data = await rp(
-    `https://maps.googleapis.com/maps/api/geocode/json?address=${address}&key=AIzaSyC7NY1rvGjGw8PXbLAB8Gtc1PuZ_h5puYY`
-    // `https://maps.googleapis.com/maps/api/geocode/json?address=${address}&key=${process.env.googleMapAPI}`
+    `https://maps.googleapis.com/maps/api/geocode/json?address=${address}&key=${googleMapAPI}`
   );
-  return JSON.parse(data).results[0].geometry.location;
+  return JSON.parse(data).results[0];
 };
 
-const getDistrict = async (lat: number, lng: number, address: string) => {
+const getDistrict = async (
+  lat: number,
+  lng: number,
+  georesult: Geocode,
+  res: Response,
+  address: string
+) => {
   const { features } = formattedDistrict;
 
   features.map((feature) => {
-    feature.geometry.coordinates.map(async (coordinate) => {
+    return feature.geometry.coordinates.map(async (coordinate) => {
       let checkIfPolyGon = await isPointInDistrict([lat, lng], coordinate);
 
-      if (checkIfPolyGon === true) {
-        return feature;
+      if (checkIfPolyGon == true) {
+        georesult.location.serviceArea = feature!.properties?.Name;
+        res.status(200).send(georesult);
       }
     });
   });
+
   return {
     status: "NOT_FOUND",
     search: address,
@@ -59,17 +68,42 @@ export const resolveAddress = async (
   const { address } = req.body;
 
   try {
-    const { lat, lng } = await getCoordinates(address.trim(), res);
+    const search = await getCoordinates(address.trim(), res);
 
-    if (!lat || !lng) {
-      throw new BadRequestError("can't get coordinates");
+    if (!search) {
+      return res.status(400).send({
+        message: "unable to convert address to coordinate",
+        status: "failed",
+      });
     }
 
-    let data = await getDistrict(lat, lng, address.trim());
+    const { lat, lng } = search.geometry.location;
 
-    res.status(200).send(data);
+    if (!lat || !lng) {
+      return res
+        .status(400)
+        .send({ message: "lng and lat are required", status: "failed" });
+    }
+
+    let georesult = {
+      status: "OK",
+      search: search.address_components[4].long_name,
+      location: {
+        address: search.formatted_address,
+        city: search.address_components[3].long_name,
+        lat,
+        lng,
+        postcode: search.address_components[4].long_name,
+        serviceArea: "",
+      },
+    };
+
+    let data = await getDistrict(lng, lat, georesult, res, address);
+
+    return res.status(400).send(data);
   } catch (error) {
-    console.log(error);
-    return res.status(422).send("shit happened");
+    return res
+      .status(422)
+      .send({ message: "something went wrong", status: "failed" });
   }
 };

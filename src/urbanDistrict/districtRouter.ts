@@ -8,7 +8,14 @@ const router = express.Router();
 
 router.post(
   "/api/district",
-  [body("address").not().isEmpty().withMessage("Address is required")],
+  [
+    body("address")
+      .not()
+      .isEmpty()
+      .trim()
+      .escape()
+      .withMessage("Address is required"),
+  ],
   validateRequest,
   resolveAddress
 );
