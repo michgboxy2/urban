@@ -1,5 +1,4 @@
-import express, { Request, Response, NextFunction } from "express";
-import { BadRequestError } from "@michytickets/common";
+import { Request, Response, NextFunction } from "express";
 import rp from "request-promise";
 import { isPointInPolygon } from "geolib";
 
@@ -9,7 +8,7 @@ import { GeolibInputCoordinates } from "geolib/es/types";
 
 interface Geocode {
   status: string;
-  search: any;
+  search: string;
   location: {
     address: string;
     city: string;
@@ -19,6 +18,8 @@ interface Geocode {
     serviceArea: string;
   };
 }
+
+var status: boolean;
 
 const isPointInDistrict = async (
   coord: GeolibInputCoordinates,
@@ -43,16 +44,18 @@ const getDistrict = async (
 ) => {
   const { features } = formattedDistrict;
 
-  features.map((feature) => {
-    return feature.geometry.coordinates.map(async (coordinate) => {
-      let checkIfPolyGon = await isPointInDistrict([lat, lng], coordinate);
-
+  for (let i = 0; i < features.length; i++) {
+    for (let j = 0; j < features[i].geometry.coordinates.length; j++) {
+      let checkIfPolyGon = await isPointInDistrict(
+        [lat, lng],
+        features[i].geometry.coordinates[j]
+      );
       if (checkIfPolyGon == true) {
-        georesult.location.serviceArea = feature!.properties?.Name;
-        res.status(200).send(georesult);
+        georesult.location.serviceArea = features[i]!.properties?.Name;
+        return georesult;
       }
-    });
-  });
+    }
+  }
 
   return {
     status: "NOT_FOUND",
@@ -98,12 +101,12 @@ export const resolveAddress = async (
       },
     };
 
-    let data = await getDistrict(lng, lat, georesult, res, address);
+    const data = await getDistrict(lng, lat, georesult, res, address);
 
     return res.status(400).send(data);
   } catch (error) {
     return res
       .status(422)
-      .send({ message: "something went wrong", status: "failed" });
+      .send({ message: "something went wrong", status: "failed", error });
   }
 };
