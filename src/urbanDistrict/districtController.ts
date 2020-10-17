@@ -21,21 +21,21 @@ interface Geocode {
 
 var status: boolean;
 
-const isPointInDistrict = async (
+export const isPointInDistrict = async (
   coord: GeolibInputCoordinates,
   polygon: any
 ) => {
   return isPointInPolygon(coord, polygon);
 };
 
-const getCoordinates = async (address: string, res: Response) => {
+export const getCoordinates = async (address: string, res: Response) => {
   let data = await rp(
     `https://maps.googleapis.com/maps/api/geocode/json?address=${address}&key=${googleMapAPI}`
   );
   return JSON.parse(data).results[0];
 };
 
-const getDistrict = async (
+export const getDistrict = async (
   lat: number,
   lng: number,
   georesult: Geocode,
@@ -103,7 +103,7 @@ export const resolveAddress = async (
 
     const data = await getDistrict(lng, lat, georesult, res, address);
 
-    return res.status(400).send(data);
+    return res.status(200).send(data);
   } catch (error) {
     return res
       .status(422)
