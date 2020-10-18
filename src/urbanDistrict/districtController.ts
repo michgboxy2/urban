@@ -104,7 +104,7 @@ export const resolveAddress = async (
 
     const data = await getDistrict(lng, lat, georesult, res, address);
 
-    client.setex(address, 36000, JSON.stringify(data));
+    client.set(address, JSON.stringify(data));
 
     return res.status(200).send(data);
   } catch (error) {
