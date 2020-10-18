@@ -2,7 +2,7 @@ import express from "express";
 import { body } from "express-validator";
 import { validateRequest } from "@michytickets/common";
 
-import { resolveAddress } from "./districtController";
+import { resolveAddress, checkCache } from "./districtController";
 
 const router = express.Router();
 
@@ -17,6 +17,7 @@ router.post(
       .withMessage("Address is required"),
   ],
   validateRequest,
+  checkCache,
   resolveAddress
 );
 
