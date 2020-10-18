@@ -1,10 +1,11 @@
 import { Request, Response, NextFunction } from "express";
 import rp from "request-promise";
 import { isPointInPolygon } from "geolib";
+import { GeolibInputCoordinates } from "geolib/es/types";
 
 const { googleMapAPI } = process.env;
 import formattedDistrict from "../districts.json";
-import { GeolibInputCoordinates } from "geolib/es/types";
+import { client } from "./cache";
 
 interface Geocode {
   status: string;
@@ -103,10 +104,31 @@ export const resolveAddress = async (
 
     const data = await getDistrict(lng, lat, georesult, res, address);
 
+    client.setex(address, 36000, JSON.stringify(data));
+
     return res.status(200).send(data);
   } catch (error) {
     return res
       .status(422)
       .send({ message: "something went wrong", status: "failed", error });
   }
+};
+
+export const checkCache = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const { address } = req.body;
+  client.get(address, (err, data) => {
+    if (err) {
+      next();
+    }
+
+    if (data != null) {
+      res.status(200).send(JSON.parse(data));
+    } else {
+      next();
+    }
+  });
 };
