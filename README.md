@@ -14,6 +14,8 @@ RUN "npm run start" to start the server.
 
 # API ENDPOINT
 
+API DOCUMENTATION: https://documenter.getpostman.com/view/5289516/TVRrWQZY
+
 URL: 127.0.0.1:3000/api/district
 
 Req.body: {
