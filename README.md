@@ -21,3 +21,6 @@ URL: 127.0.0.1:3000/api/district
 Req.body: {
 'address': '4 Colebrooke Row, London'
 }
+
+# DOCKER
+ RUN docker-compose up --build to build docker-compose file
